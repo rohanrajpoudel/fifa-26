@@ -31,11 +31,16 @@ Thumbs.db
 gptResponse/
 
 # Model artifacts
-models/
+# models/
 *.pkl
 *.joblib
 *.h5
 *.pb
+*.tsv
+*.tfevents
+catboost_info
+src\models\validation_predictions.csv
+validation_predictions.csv
 
 # Outputs
 outputs/

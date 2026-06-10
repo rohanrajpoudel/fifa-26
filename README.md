@@ -52,20 +52,34 @@ Win Probabilities & Visualizations
 - `data/matches_with_features.csv` - matches with pre-match features
 - `data/elo_history.csv` - complete ELO progression
 
+**Machine Learning Models**
+- XGBoost regressors for home/away goals (Poisson loss)
+- CatBoost regressors for home/away goals (Poisson loss)
+- Poisson regression (statistical GLM baseline)
+- Dixon-Coles adjustments for low-scoring games
+
+**Goal Prediction System**
+- Unified prediction interface (`src/prediction/`)
+- Multiple model ensemble
+- Scoreline probability distributions
+- Match outcome probabilities
+- Comprehensive evaluation framework
+
 ### 🚧 In Progress / To Do
 
-**Phase 1: Baseline Models**
-- [ ] Train match outcome classifier (Win/Draw/Loss)
-- [ ] Implement Logistic Regression baseline
-- [ ] Train XGBoost/LightGBM models
-- [ ] Model evaluation and calibration
-- [ ] Feature importance analysis
+**Phase 1: Baseline Models** ✓ COMPLETE
+- [x] Train match outcome classifier (Win/Draw/Loss)
+- [x] Train XGBoost/CatBoost models with Poisson loss
+- [x] Model evaluation and calibration
+- [x] Feature importance analysis
 
-**Phase 2: Goal Prediction**
-- [ ] Implement Poisson regression for expected goals
-- [ ] Dixon-Coles model for low-scoring adjustments
-- [ ] Goal distribution validation
-- [ ] Expected goals (xG) prediction per team
+**Phase 2: Goal Prediction** ✓ COMPLETE
+- [x] Implement Poisson regression for expected goals
+- [x] Dixon-Coles model for low-scoring adjustments
+- [x] Goal distribution validation
+- [x] Expected goals (xG) prediction per team
+- [x] Unified prediction interface
+- [x] Comprehensive model evaluation
 
 **Phase 3: Tournament Simulation**
 - [ ] Group stage simulator (12 groups of 4 teams)
@@ -108,14 +122,32 @@ fifa-26/
 │   ├── shootouts.csv               # Penalty shootout data
 │   └── former_names.csv            # Team name changes
 ├── src/
-│   ├── cleanData/
-│   │   └── cleanData.ipynb         # Data preprocessing pipeline
-│   └── customElo/
-│       └── generateElo.ipynb       # ELO rating system & features
+│   ├── data_processing/            # Data cleaning pipeline
+│   │   └── clean_data.py
+│   ├── elo/                        # ELO rating system
+│   │   └── generate_elo.py
+│   ├── train/                      # Model training
+│   │   └── train_models.py         # XGBoost/CatBoost training
+│   └── prediction/                 # ✓ Goal prediction (Phase 3)
+│       ├── poisson_model.py        # Poisson regression
+│       ├── dixon_coles.py          # Dixon-Coles model
+│       ├── predict.py              # Unified prediction interface
+│       ├── evaluate_models.py      # Model evaluation
+│       └── train_all.py            # Training pipeline
+├── models/                         # Trained models
+│   ├── xgb_home.pkl, xgb_away.pkl
+│   ├── cat_home.pkl, cat_away.pkl
+│   ├── poisson_model.pkl           # ✓ New
+│   ├── dixon_coles_xgb.pkl         # ✓ New
+│   └── dixon_coles_cat.pkl         # ✓ New
+├── examples/                       # Usage examples
+│   └── predict_match.py
 ├── gptResponse/                    # Project planning documentation
 │   ├── 00.1.md                     # Architecture recommendations
 │   └── 00.2.md                     # Project roadmap
-├── .venv/                          # Virtual environment (gitignored)
+├── PHASE3_COMPLETE.md              # ✓ Implementation details
+├── QUICK_START_PHASE3.md           # ✓ Quick reference guide
+├── IMPLEMENTATION_SUMMARY.md       # ✓ Summary document
 ├── .gitignore
 ├── requirements.txt
 └── README.md
@@ -137,7 +169,7 @@ pip install -r requirements.txt
 ### 1. Clean Historical Data
 
 ```bash
-jupyter notebook src/cleanData/cleanData.ipynb
+python src/data_processing/clean_data.py
 ```
 
 Processes raw match data and generates cleaned datasets filtered for 2000-2026.
@@ -145,10 +177,34 @@ Processes raw match data and generates cleaned datasets filtered for 2000-2026.
 ### 2. Generate ELO Ratings
 
 ```bash
-jupyter notebook src/customElo/generateElo.ipynb
+python src/elo/generate_elo.py
 ```
 
 Calculates ELO ratings, form metrics, and generates feature-rich datasets.
+
+### 3. Train Models
+
+```bash
+# Train XGBoost/CatBoost models
+python src/train/train_models.py
+
+# Train Poisson and Dixon-Coles models
+python src/prediction/train_all.py
+```
+
+### 4. Make Predictions
+
+```python
+from src.prediction.predict import GoalPredictor
+
+predictor = GoalPredictor()
+result = predictor.predict_match(
+    home_team='Brazil',
+    away_team='Argentina',
+    features=match_features
+)
+```
+
 
 ## World Cup 2026 Teams (48 Teams)
 

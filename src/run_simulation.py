@@ -120,7 +120,7 @@ Examples:
             
             # Save results
             results_df.to_csv(args.output, index=False)
-            print(f"\n✓ Results saved to {args.output}")
+            print(f"\n[SUCCESS] Results saved to {args.output}")
             
             # Additional statistics
             print(f"\n{'='*70}")

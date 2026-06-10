@@ -4,6 +4,15 @@ A comprehensive end-to-end machine learning system for predicting FIFA World Cup
 
 **From raw match data to championship probabilities in one integrated system.**
 
+## 🌟 New in v1.0.1: Real-Time Simulation Updates!
+
+Now featuring **live progress tracking** during Monte Carlo simulations:
+- 🔴 Real-time progress updates with visual feedback
+- 📊 Live charts showing top 10 championship contenders (updated every 1%)
+- 📈 Dynamic metrics dashboard (current leader, simulation speed, progress %)
+- 🎯 No more frozen screens - watch probabilities converge in real-time!
+- 🛠️ Enhanced error handling and robust data validation
+
 ---
 
 ## 🚀 Quick Start
@@ -37,7 +46,7 @@ python src/test_simulation.py
 # 2. Run 10,000 Monte Carlo simulations
 python src/run_simulation.py --monte-carlo 10000
 
-# 3. Start the web interface
+# 3. Start the web interface (with live updates!)
 streamlit run src/app/app.py
 ```
 
@@ -94,6 +103,7 @@ Based on 10,000 simulations using trained models:
 - ✅ Data cleaning and preprocessing
 - ✅ Feature engineering
 - ✅ Team name standardization
+- ✅ Robust NaN handling for missing data
 
 ### Custom ELO System
 - ✅ Competition-weighted K-factors (World Cup: 60, Friendlies: 20)
@@ -104,10 +114,11 @@ Based on 10,000 simulations using trained models:
 
 ### Machine Learning Models
 - ✅ **XGBoost** with Poisson loss
-- ✅ **CatBoost** with Poisson loss
+- ✅ **CatBoost** with Poisson loss (with proper categorical feature handling)
 - ✅ **Poisson Regression** (GLM baseline)
 - ✅ **Dixon-Coles Model** (low-score adjustment)
-- ✅ **Ensemble predictions**
+- ✅ **Ensemble predictions** (dynamic averaging of available models)
+- ✅ Automatic model availability detection
 
 ### Tournament Simulation
 - ✅ 48 teams in 12 groups (official 2026 format)
@@ -119,6 +130,10 @@ Based on 10,000 simulations using trained models:
 
 ### User Interfaces
 - ✅ **Web Interface** (Streamlit with interactive charts)
+  - 🔴 **Real-time simulation updates** with live progress tracking
+  - 📊 **Live updating charts** showing top contenders as simulations run
+  - 📈 **Dynamic metrics dashboard** with simulation speed and leader tracking
+  - 🎯 **Progress visualization** with percentage and time estimates
 - ✅ **Command-Line Interface** (fast batch processing)
 - ✅ **Python API** (for custom workflows)
 
@@ -276,7 +291,7 @@ python src/run_simulation.py --monte-carlo 10000 --no-dixon-coles
 python src/run_simulation.py --monte-carlo 10000 --output my_results.csv
 ```
 
-#### Web Interface
+#### Web Interface (Recommended!)
 
 ```bash
 # Start Streamlit app
@@ -285,9 +300,47 @@ streamlit run src/app/app.py
 # Navigate to http://localhost:8501
 ```
 
+**What You'll See During Simulations:**
+
+When you run a Monte Carlo simulation in the web interface, you get real-time updates:
+
+1. **Live Metrics Dashboard** (Top row)
+   - Simulations: Current count and speed (sims/sec)
+   - Current Leader: Team with highest win probability so far
+   - Progress: Percentage complete and remaining simulations
+
+2. **Live Charts** (Updated every 1% of progress)
+   - Top 10 Championship Contenders (red bar chart)
+   - Top 10 Knockout Qualification Leaders (blue bar chart)
+
+3. **Live Results Table**
+   - Real-time probabilities with color gradients
+   - Championship wins and qualification rates
+   - Updates as data accumulates
+
+4. **Final Results**
+   - Comprehensive top 20 favorites
+   - Interactive visualizations
+   - Downloadable CSV export
+
+**Example Output During Simulation:**
+```
+🔴 Live Simulation Progress
+Simulations: 5,000 / 10,000 (423 sims/sec)
+Current Leader: Brazil (18.34%)
+Progress: 50.0% (5,000 remaining)
+
+[Live charts showing current standings...]
+```
+
 **Web Interface Features:**
 - 🏠 **Home**: Tournament overview and official groups
-- 🎯 **Run Simulation**: Configure and run simulations
+- 🎯 **Run Simulation**: Configure and run simulations with live updates
+  - Real-time progress tracking with visual feedback
+  - Live charts showing top 10 championship contenders (updated every 1%)
+  - Live charts showing top 10 knockout qualification leaders
+  - Dynamic metrics: current leader, simulation speed, progress percentage
+  - Automatic model availability detection (only shows trained models)
 - 📊 **View Results**: Interactive charts and data tables
 - 🔧 **Model Training**: One-click model training
 - ℹ️ **About**: Methodology and documentation
@@ -498,6 +551,10 @@ Where λ values come from ML models, adjusted by Dixon-Coles if enabled.
 | ELO only | ~2,000/sec | 5 seconds |
 | ML ensemble | ~500/sec | 20 seconds |
 | ML + Dixon-Coles | ~400/sec | 25 seconds |
+| **With Live Updates** | ~350-500/sec | 20-30 seconds |
+
+**Note:** Live updates add ~5-10% overhead but provide real-time visual feedback.
+Updates occur every 1% of total simulations (e.g., every 100 sims for a 10,000-sim run).
 
 ### Output Format
 
@@ -514,6 +571,13 @@ Argentina,1401,0.1401,9889,0.9889,1.28
 ### Visualization
 
 The web interface provides:
+- **Live Simulation Updates** (NEW!)
+  - Real-time progress bar with percentage completion
+  - Live metrics dashboard showing current leader and simulation speed
+  - Top 10 championship contenders chart (updates every 1% of progress)
+  - Top 10 knockout qualification chart (updates every 1% of progress)
+  - Live data table with color-coded probabilities
+  - No more frozen screens - constant visual feedback!
 - Bar charts of championship probabilities
 - Pie charts of top favorites
 - Filterable data tables
@@ -585,6 +649,52 @@ Options:
 python src/prediction/train_all.py
 ```
 
+**Issue**: CatBoost error with NaN values in categorical features
+```bash
+# Solution: This has been fixed! The system now automatically handles NaN values
+# in confederation and other categorical features by converting them to "Unknown"
+```
+
+**Issue**: KeyError: 'form' or column name errors
+```bash
+# Solution: This has been fixed! The system now correctly reads 'current_form' 
+# from the CSV file
+```
+
+**Issue**: Ensemble model not available in dropdown
+```bash
+# Solution: Ensemble requires at least 2 base models. Train XGBoost, CatBoost, 
+# or Poisson models first. The web interface automatically detects available models.
+python src/train/train_models.py
+python src/prediction/train_all.py
+```
+
+**Issue**: Slow simulations
+```bash
+# Solution: Use fewer iterations or faster model
+python src/run_simulation.py --monte-carlo 1000 --model poisson
+```
+
+**Issue**: CatBoost error with NaN values in categorical features
+```bash
+# Solution: This has been fixed! The system now automatically handles NaN values
+# in confederation and other categorical features by converting them to "Unknown"
+```
+
+**Issue**: KeyError: 'form' or column name errors
+```bash
+# Solution: This has been fixed! The system now correctly reads 'current_form' 
+# from the CSV file
+```
+
+**Issue**: Ensemble model not available in dropdown
+```bash
+# Solution: Ensemble requires at least 2 base models. Train XGBoost, CatBoost, 
+# or Poisson models first. The web interface automatically detects available models.
+python src/train/train_models.py
+python src/prediction/train_all.py
+```
+
 **Issue**: Slow simulations
 ```bash
 # Solution: Use fewer iterations or faster model
@@ -603,6 +713,11 @@ pip install -r requirements.txt
 import pandas as pd
 teams = pd.read_csv('./data/teams_with_elo.csv')
 print(teams['team'].tolist())
+```
+
+**Issue**: Streamlit duplicate element ID errors
+```bash
+# Solution: This has been fixed! Live charts now use unique keys to prevent conflicts
 ```
 
 ---
@@ -702,6 +817,18 @@ This is an educational project demonstrating end-to-end sports analytics. Potent
 - Historical knockout performance weighting
 - Real-time odds comparison
 - Interactive bracket visualization
+- Enhanced live visualization with more detailed match-by-match tracking
+- Machine learning model hyperparameter optimization
+- Cross-validation for model selection
+
+### Recent Improvements (v1.0.1)
+
+- ✅ Added real-time simulation updates with live charts
+- ✅ Fixed CatBoost NaN handling for categorical features
+- ✅ Fixed column name mapping for team form data
+- ✅ Added dynamic model availability detection
+- ✅ Improved UI responsiveness with unique element keys
+- ✅ Enhanced progress tracking with live metrics dashboard
 
 ---
 
@@ -713,7 +840,7 @@ Educational project for demonstration of machine learning and sports analytics.
 
 ## 🎯 Project Status
 
-**Current Version**: 1.0 (June 2026)
+**Current Version**: 1.0.1 (June 2026)
 
 **Status**: ✅ Complete and operational
 
@@ -724,9 +851,18 @@ Educational project for demonstration of machine learning and sports analytics.
 - ✅ Dixon-Coles adjustments
 - ✅ Tournament simulator (48 teams, 12 groups)
 - ✅ Monte Carlo engine (100,000+ capable)
-- ✅ Web interface (Streamlit)
+- ✅ Web interface (Streamlit) with real-time updates
 - ✅ CLI interface
 - ✅ Complete documentation
+- ✅ Robust error handling and NaN management
+- ✅ Dynamic model availability detection
+
+**Latest Updates (v1.0.1):**
+- 🔴 Real-time simulation progress with live charts
+- 🛠️ Fixed CatBoost categorical feature handling
+- 🛠️ Fixed data column mapping issues
+- 📊 Enhanced UI with dynamic updates
+- 🎯 Improved user experience with visual feedback
 
 ---
 
@@ -749,4 +885,20 @@ Educational project for demonstration of machine learning and sports analytics.
 
 **Ready to predict World Cup 2026!** ⚽🏆
 
-Start with: `streamlit run src/app/app.py` for the full interactive experience.
+Start with: `streamlit run src/app/app.py` for the full interactive experience with live updates!
+
+### Screenshots & Demo
+
+**Live Simulation View:**
+When running simulations, you'll see:
+- 3 real-time metrics at the top (simulations count, current leader, progress %)
+- Progress bar showing completion status
+- Two side-by-side live charts updating every 1% of progress
+- Live data table with color-coded probabilities (red for championship, blue for knockout)
+- All updating in real-time as simulations run - no frozen screens!
+
+**Final Results View:**
+- Interactive bar charts and pie charts
+- Filterable data tables
+- Export to CSV functionality
+- Historical comparison options

@@ -21,6 +21,26 @@ from src.simulation.tournament import TournamentSimulator
 from src.simulation.predictor_integration import create_predictor_from_models
 
 
+def check_available_models():
+    """Check which prediction models are available."""
+    models_dir = Path('./models')
+    available = []
+    
+    # Check XGBoost
+    if (models_dir / 'xgb_home.pkl').exists():
+        available.append('xgb')
+    
+    # Check CatBoost
+    if (models_dir / 'cat_home.pkl').exists():
+        available.append('cat')
+    
+    # Check Poisson
+    if (models_dir / 'poisson_model.pkl').exists():
+        available.append('poisson')
+    
+    return available
+
+
 # Page configuration
 st.set_page_config(
     page_title="FIFA World Cup 2026 Simulator",
@@ -134,6 +154,9 @@ def show_simulation():
     """Simulation page."""
     st.header("🎯 Run Tournament Simulation")
     
+    # Check available models
+    available_models = check_available_models()
+    
     # Simulation settings
     st.subheader("Simulation Settings")
     
@@ -156,11 +179,38 @@ def show_simulation():
         )
     
     with col2:
+        # Filter model options based on availability
+        model_options = []
+        model_help = "Which model to use for goal predictions:\n"
+        
+        if 'xgb' in available_models:
+            model_options.append('xgb')
+            model_help += "• xgb: XGBoost gradient boosting\n"
+        
+        if 'poisson' in available_models:
+            model_options.append('poisson')
+            model_help += "• poisson: Statistical baseline\n"
+        
+        if 'cat' in available_models:
+            model_options.append('cat')
+            model_help += "• cat: CatBoost gradient boosting\n"
+        
+        # Only add ensemble if we have multiple models
+        if len(available_models) >= 2:
+            model_options.append('ensemble')
+            model_help += "• ensemble: Average of all available models"
+        
+        # Default to first available model
         base_model = st.selectbox(
             "Base Prediction Model",
-            ["ensemble", "xgb", "cat", "poisson"],
-            help="Which model to use for goal predictions"
+            model_options if model_options else ['xgb'],
+            help=model_help
         )
+        
+        # Show warning if some models are missing
+        missing_models = set(['xgb', 'cat', 'poisson']) - set(available_models)
+        if missing_models:
+            st.info(f"ℹ️ Some models not available: {', '.join(missing_models)}. Train them in the Model Training page.")
         
         detailed_mode = st.checkbox(
             "Detailed Mode (Single Simulation)",
@@ -280,8 +330,8 @@ def run_detailed_simulation(use_dixon_coles: bool, base_model: str):
 
 
 def run_monte_carlo(n_simulations: int, use_dixon_coles: bool, base_model: str):
-    """Run Monte Carlo simulation."""
-    st.info(f"Running {n_simulations:,} tournament simulations...")
+    """Run Monte Carlo simulation with live updates."""
+    st.info(f"Running {n_simulations:,} tournament simulations with live updates...")
     
     try:
         # Create predictor
@@ -291,32 +341,165 @@ def run_monte_carlo(n_simulations: int, use_dixon_coles: bool, base_model: str):
         # Create simulator
         simulator = TournamentSimulator(predictor)
         
-        # Progress bar
+        # Create placeholders for live updates
+        st.markdown("---")
+        st.subheader("🔴 Live Simulation Progress")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            metric_sims = st.empty()
+        with col2:
+            metric_leader = st.empty()
+        with col3:
+            metric_speed = st.empty()
+        
         progress_bar = st.progress(0)
         status_text = st.empty()
         
-        def progress_callback(current, total):
-            progress = current / total
-            progress_bar.progress(progress)
-            status_text.text(f"Progress: {current:,}/{total:,} ({progress*100:.1f}%)")
+        # Live charts
+        chart_col1, chart_col2 = st.columns(2)
+        with chart_col1:
+            st.markdown("**Top 10 Championship Contenders**")
+            live_chart_championship = st.empty()
         
-        # Run simulation
+        with chart_col2:
+            st.markdown("**Top 10 Knockout Qualification**")
+            live_chart_knockout = st.empty()
+        
+        live_table = st.empty()
+        
+        # Tracking variables
+        from collections import Counter, defaultdict
+        champions_list = []
+        knockout_counts = defaultdict(int)
         start_time = time.time()
-        results_df = simulator.run_monte_carlo(n_simulations, progress_callback)
-        elapsed = time.time() - start_time
+        update_frequency = max(1, n_simulations // 100)  # Update every 1% or at least every sim
         
-        # Clear progress
+        # Custom simulation loop with live updates
+        for sim_num in range(n_simulations):
+            # Run one tournament
+            result = simulator.simulate_tournament(detailed=False)
+            
+            # Track results
+            champions_list.append(result['champion'])
+            
+            # Track knockout appearances
+            all_qualified = (result['qualified_teams']['winners'] + 
+                           result['qualified_teams']['runners_up'] + 
+                           result['qualified_teams']['third_place'])
+            for team in all_qualified:
+                knockout_counts[team] += 1
+            
+            # Update display periodically
+            if (sim_num + 1) % update_frequency == 0 or sim_num == n_simulations - 1:
+                current_sim = sim_num + 1
+                progress = current_sim / n_simulations
+                elapsed = time.time() - start_time
+                rate = current_sim / elapsed if elapsed > 0 else 0
+                
+                # Update progress bar
+                progress_bar.progress(progress)
+                status_text.text(f"Simulations: {current_sim:,} / {n_simulations:,} ({progress*100:.1f}%)")
+                
+                # Count current standings
+                champion_counts = Counter(champions_list)
+                
+                # Create temporary results DataFrame
+                temp_results = []
+                for team, wins in champion_counts.items():
+                    temp_results.append({
+                        'team': team,
+                        'championship_wins': wins,
+                        'championship_probability': wins / current_sim,
+                        'knockout_appearances': knockout_counts.get(team, 0),
+                        'knockout_probability': knockout_counts.get(team, 0) / current_sim
+                    })
+                
+                temp_df = pd.DataFrame(temp_results)
+                temp_df = temp_df.sort_values('championship_probability', ascending=False).head(10)
+                
+                # Update metrics
+                if len(temp_df) > 0:
+                    leader = temp_df.iloc[0]
+                    metric_sims.metric("Simulations", f"{current_sim:,}", f"{rate:.0f}/sec")
+                    metric_leader.metric("Current Leader", leader['team'], 
+                                        f"{leader['championship_probability']*100:.2f}%")
+                    metric_speed.metric("Progress", f"{progress*100:.1f}%", 
+                                       f"{(n_simulations - current_sim):,} remaining")
+                    
+                    # Update championship chart
+                    fig1 = px.bar(
+                        temp_df,
+                        x='team',
+                        y='championship_probability',
+                        color='championship_probability',
+                        color_continuous_scale='Reds',
+                        labels={'championship_probability': 'Win %', 'team': 'Team'}
+                    )
+                    fig1.update_layout(
+                        showlegend=False,
+                        xaxis_tickangle=-45,
+                        height=300,
+                        margin=dict(l=0, r=0, t=0, b=0)
+                    )
+                    live_chart_championship.plotly_chart(fig1, width='stretch', key=f"live_championship_chart_{current_sim}")
+                    
+                    # Update knockout chart
+                    fig2 = px.bar(
+                        temp_df,
+                        x='team',
+                        y='knockout_probability',
+                        color='knockout_probability',
+                        color_continuous_scale='Blues',
+                        labels={'knockout_probability': 'Qualification %', 'team': 'Team'}
+                    )
+                    fig2.update_layout(
+                        showlegend=False,
+                        xaxis_tickangle=-45,
+                        height=300,
+                        margin=dict(l=0, r=0, t=0, b=0)
+                    )
+                    live_chart_knockout.plotly_chart(fig2, width='stretch', key=f"live_knockout_chart_{current_sim}")
+                    
+                    # Update live table
+                    live_table.dataframe(
+                        temp_df[['team', 'championship_probability', 'knockout_probability', 'championship_wins']]
+                        .style.format({
+                            'championship_probability': '{:.2%}',
+                            'knockout_probability': '{:.2%}',
+                            'championship_wins': '{:,.0f}'
+                        })
+                        .background_gradient(subset=['championship_probability'], cmap='Reds')
+                        .background_gradient(subset=['knockout_probability'], cmap='Blues'),
+                        hide_index=True,
+                        width='stretch'
+                    )
+        
+        elapsed_total = time.time() - start_time
+        
+        # Clear live update section
         progress_bar.empty()
         status_text.empty()
         
-        st.success(f"✅ Completed {n_simulations:,} simulations in {elapsed:.1f}s!")
+        st.success(f"✅ Completed {n_simulations:,} simulations in {elapsed_total:.1f}s ({n_simulations/(elapsed_total/60):.2f} sims/min)!")
+        
+        # Generate final aggregated results using the simulator's method
+        group_positions = defaultdict(lambda: defaultdict(int))
+        
+        results_df = simulator._aggregate_results(
+            champions_list, 
+            defaultdict(list),  # group_winners not tracked in live mode
+            group_positions,    # empty for now
+            knockout_counts,
+            n_simulations
+        )
         
         # Save results
         results_df.to_csv('./results/monte_carlo_results.csv', index=False)
         
-        # Display results
+        # Display final results
         st.markdown("---")
-        st.subheader("🏆 Championship Probabilities")
+        st.subheader("🏆 Final Championship Probabilities")
         
         # Top 20 favorites
         top_20 = results_df.head(20)
@@ -332,15 +515,14 @@ def run_monte_carlo(n_simulations: int, use_dixon_coles: bool, base_model: str):
             color_continuous_scale='Viridis'
         )
         fig.update_layout(xaxis_tickangle=-45, height=500)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
         
         # Data table
         st.dataframe(
-            top_20[['team', 'championship_probability', 'knockout_probability', 'avg_group_position']]
+            top_20[['team', 'championship_probability', 'knockout_probability']]
             .style.format({
                 'championship_probability': '{:.2%}',
-                'knockout_probability': '{:.2%}',
-                'avg_group_position': '{:.2f}'
+                'knockout_probability': '{:.2%}'
             }),
             hide_index=True
         )
@@ -394,7 +576,7 @@ def show_results():
                 names='team',
                 title='Top 10 - Championship Share'
             )
-            st.plotly_chart(fig1, use_container_width=True)
+            st.plotly_chart(fig1, width='stretch')
         
         with col2:
             # Knockout probability
@@ -407,16 +589,21 @@ def show_results():
                 color_continuous_scale='Blues'
             )
             fig2.update_layout(xaxis_tickangle=-45)
-            st.plotly_chart(fig2, use_container_width=True)
+            st.plotly_chart(fig2, width='stretch')
         
         # Full data table
         st.subheader("Complete Results")
+        
+        # Format columns dynamically based on what exists
+        format_dict = {
+            'championship_probability': '{:.4%}',
+            'knockout_probability': '{:.2%}'
+        }
+        if 'avg_group_position' in filtered_df.columns:
+            format_dict['avg_group_position'] = '{:.2f}'
+        
         st.dataframe(
-            filtered_df.style.format({
-                'championship_probability': '{:.4%}',
-                'knockout_probability': '{:.2%}',
-                'avg_group_position': '{:.2f}'
-            }),
+            filtered_df.style.format(format_dict),
             hide_index=True
         )
         

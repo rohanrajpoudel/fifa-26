@@ -226,7 +226,7 @@ class TournamentSimulator:
         print('-'*70)
         for idx, row in third_place_df.iterrows():
             rank = idx + 1
-            qualified_mark = "✓" if row['team'] in qualified['third_place'] else "✗"
+            qualified_mark = "[OK]" if row['team'] in qualified['third_place'] else "[X]"
             print(f"{rank:<6} {row['team']:<20} {row['group']:<8} "
                   f"{row['points']:>4} {row['goal_difference']:>4} {row['goals_for']:>4} {qualified_mark}")
         

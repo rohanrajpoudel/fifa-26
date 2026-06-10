@@ -43,10 +43,15 @@ class TournamentPredictor:
         team_stats = {}
         
         for _, row in self.teams_df.iterrows():
+            # Handle NaN/empty confederation values
+            conf = row.get('confederation', 'Unknown')
+            if pd.isna(conf) or conf == '':
+                conf = 'Unknown'
+            
             team_stats[row['team']] = {
                 'elo': row['current_elo'],
-                'form': row['form'],
-                'confederation': row.get('confederation', 'Unknown')
+                'form': row['current_form'],
+                'confederation': str(conf)  # Ensure it's a string
             }
         
         return team_stats
@@ -86,7 +91,16 @@ class TournamentPredictor:
     def _predict_with_ml(self, home_team: str, away_team: str,
                         home_stats: Dict, away_stats: Dict) -> Tuple[int, int, Dict]:
         """Predict using ML models."""
-        # Prepare features
+        # Prepare features - ensure confederations are strings (CatBoost requirement)
+        home_conf = str(home_stats.get('confederation', 'Unknown'))
+        away_conf = str(away_stats.get('confederation', 'Unknown'))
+        
+        # Handle any remaining NaN values
+        if pd.isna(home_conf) or home_conf == 'nan':
+            home_conf = 'Unknown'
+        if pd.isna(away_conf) or away_conf == 'nan':
+            away_conf = 'Unknown'
+        
         features = {
             'home_elo_before': home_stats['elo'],
             'away_elo_before': away_stats['elo'],
@@ -96,8 +110,8 @@ class TournamentPredictor:
             'form_diff': home_stats['form'] - away_stats['form'],
             'neutral_site': 0,  # World Cup matches are neutral
             'competition': 'FIFA World Cup',
-            'home_confederation': home_stats['confederation'],
-            'away_confederation': away_stats['confederation'],
+            'home_confederation': home_conf,
+            'away_confederation': away_conf,
             # Dummy rolling stats (would be calculated from recent matches in production)
             'home_attack_5': 1.5,
             'away_attack_5': 1.5,

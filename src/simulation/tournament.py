@@ -62,6 +62,36 @@ class TournamentSimulator:
         
         return results
     
+    def simulate_tournament_with_tracking(self, detailed: bool = False) -> Dict:
+        """
+        Simulate one complete World Cup tournament with tracking of semifinalists and finalists.
+        
+        Args:
+            detailed: Whether to track all match details
+            
+        Returns:
+            Dictionary with tournament results including semifinalists and finalists
+        """
+        # Group stage
+        group_standings, group_matches = self.group_simulator.simulate_all_groups(detailed)
+        qualified = self.group_simulator.get_qualified_teams(group_standings)
+        
+        # Knockout stage with tracking
+        champion, knockout_matches, semifinalists, finalists = self.knockout_simulator.simulate_knockout_stage_with_tracking(qualified, detailed)
+        
+        # Compile results
+        results = {
+            'champion': champion,
+            'group_standings': group_standings,
+            'qualified_teams': qualified,
+            'group_matches': group_matches if detailed else [],
+            'knockout_matches': knockout_matches if detailed else [],
+            'semifinalists': semifinalists,
+            'finalists': finalists
+        }
+        
+        return results
+    
     def run_monte_carlo(self, n_simulations: int, progress_callback=None) -> pd.DataFrame:
         """
         Run Monte Carlo simulation of the tournament.
@@ -82,12 +112,14 @@ class TournamentSimulator:
         group_winners = defaultdict(list)
         group_positions = defaultdict(lambda: defaultdict(int))
         knockout_appearances = defaultdict(int)
+        semifinal_appearances = defaultdict(int)
+        final_appearances = defaultdict(int)
         
         start_time = time.time()
         
         for sim_num in range(n_simulations):
-            # Run one tournament
-            result = self.simulate_tournament(detailed=False)
+            # Run one tournament with tracking
+            result = self.simulate_tournament_with_tracking(detailed=False)
             
             # Record champion
             champions.append(result['champion'])
@@ -111,6 +143,13 @@ class TournamentSimulator:
             for team in all_qualified:
                 knockout_appearances[team] += 1
             
+            # Record semifinal and final appearances
+            for team in result.get('semifinalists', []):
+                semifinal_appearances[team] += 1
+            
+            for team in result.get('finalists', []):
+                final_appearances[team] += 1
+            
             # Progress update
             if progress_callback and (sim_num + 1) % 100 == 0:
                 progress_callback(sim_num + 1, n_simulations)
@@ -129,26 +168,33 @@ class TournamentSimulator:
         # Aggregate results
         results_df = self._aggregate_results(
             champions, group_winners, group_positions, 
-            knockout_appearances, n_simulations
+            knockout_appearances, semifinal_appearances, 
+            final_appearances, n_simulations
         )
         
         return results_df
     
     def _aggregate_results(self, champions: List[str], group_winners: Dict,
                           group_positions: Dict, knockout_appearances: Dict,
+                          semifinal_appearances: Dict, final_appearances: Dict,
                           n_simulations: int) -> pd.DataFrame:
         """Aggregate Monte Carlo simulation results."""
         
         # Count champion occurrences
         champion_counts = Counter(champions)
         
+        # Get all teams that appeared in any simulation
+        all_teams = set(champions) | set(knockout_appearances.keys())
+        
         # Prepare results data
         results_data = []
         
-        for team in set(champions):
-            wins = champion_counts[team]
+        for team in all_teams:
+            wins = champion_counts.get(team, 0)
             win_prob = wins / n_simulations
             knockout_prob = knockout_appearances.get(team, 0) / n_simulations
+            semifinal_prob = semifinal_appearances.get(team, 0) / n_simulations
+            final_prob = final_appearances.get(team, 0) / n_simulations
             
             # Calculate average group position
             positions = group_positions.get(team, {})
@@ -161,6 +207,10 @@ class TournamentSimulator:
                 'team': team,
                 'championship_wins': wins,
                 'championship_probability': win_prob,
+                'final_appearances': final_appearances.get(team, 0),
+                'final_probability': final_prob,
+                'semifinal_appearances': semifinal_appearances.get(team, 0),
+                'semifinal_probability': semifinal_prob,
                 'knockout_appearances': knockout_appearances.get(team, 0),
                 'knockout_probability': knockout_prob,
                 'avg_group_position': avg_position
@@ -174,25 +224,27 @@ class TournamentSimulator:
     
     def print_simulation_summary(self, results_df: pd.DataFrame, top_n: int = 20):
         """Print formatted summary of simulation results."""
-        print(f"\n{'='*70}")
+        print(f"\n{'='*90}")
         print("WORLD CUP 2026 - SIMULATION RESULTS")
-        print('='*70)
+        print('='*90)
         
         print(f"\nTop {top_n} Championship Favorites:")
-        print(f"{'Rank':<6} {'Team':<25} {'Win %':>10} {'Knockout %':>12} {'Avg Pos':>10}")
-        print('-'*70)
+        print(f"{'Rank':<6} {'Team':<20} {'Win %':>8} {'Final %':>8} {'Semi %':>8} {'R32 %':>8} {'Avg Pos':>8}")
+        print('-'*90)
         
         for idx, row in results_df.head(top_n).iterrows():
             rank = idx + 1
-            print(f"{rank:<6} {row['team']:<25} "
-                  f"{row['championship_probability']*100:>9.2f}% "
-                  f"{row['knockout_probability']*100:>11.2f}% "
-                  f"{row['avg_group_position']:>10.2f}")
+            print(f"{rank:<6} {row['team']:<20} "
+                  f"{row['championship_probability']*100:>7.2f}% "
+                  f"{row['final_probability']*100:>7.2f}% "
+                  f"{row['semifinal_probability']*100:>7.2f}% "
+                  f"{row['knockout_probability']*100:>7.2f}% "
+                  f"{row.get('avg_group_position', 0):>8.2f}")
         
-        print(f"\n{'='*70}")
+        print(f"\n{'='*90}")
         print(f"Most Likely Champion: {results_df.iloc[0]['team']} "
               f"({results_df.iloc[0]['championship_probability']*100:.2f}%)")
-        print('='*70)
+        print('='*90)
     
     def simulate_single_tournament_detailed(self) -> Dict:
         """

@@ -12,16 +12,16 @@ from dataclasses import dataclass
 # Official 2026 World Cup Groups
 WORLD_CUP_GROUPS = {
     'A': ['Mexico', 'South Africa', 'South Korea', 'Czech Republic'],
-    'B': ['United States', 'Paraguay', 'Turkey', 'Australia'],
+    'B': ['Canada', 'Bosnia and Herzegovina', 'Qatar', 'Switzerland'],
     'C': ['Brazil', 'Morocco', 'Haiti', 'Scotland'],
-    'D': ['France', 'Colombia', 'Iraq', 'Norway'],
-    'E': ['Portugal', 'Denmark', 'Egypt', 'Costa Rica'],
+    'D': ['United States', 'Paraguay', 'Australia', 'Turkey'],
+    'E': ['Germany', 'Curaçao', 'Ivory Coast', 'Ecuador'],
     'F': ['Netherlands', 'Japan', 'Sweden', 'Tunisia'],
-    'G': ['Germany', 'Cameroon', 'Serbia', 'Ecuador'],
+    'G': ['Belgium', 'Egypt', 'Iran', 'New Zealand'],
     'H': ['Spain', 'Cape Verde', 'Saudi Arabia', 'Uruguay'],
-    'I': ['Italy', 'Switzerland', 'Canada', 'Uzbekistan'],
+    'I': ['France', 'Senegal', 'Iraq', 'Norway'],
     'J': ['Argentina', 'Algeria', 'Austria', 'Jordan'],
-    'K': ['Belgium', 'Nigeria', 'Iran', 'Venezuela'],
+    'K': ['Portugal', 'DR Congo', 'Uzbekistan', 'Colombia'],
     'L': ['England', 'Croatia', 'Ghana', 'Panama']
 }
 

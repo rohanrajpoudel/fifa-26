@@ -252,6 +252,49 @@ class KnockoutSimulator:
         
         return champion[0], all_matches
     
+    def simulate_knockout_stage_with_tracking(self, qualified_teams: Dict[str, List[str]], 
+                                              detailed: bool = False) -> Tuple[str, List[KnockoutMatch], List[str], List[str]]:
+        """
+        Simulate entire knockout stage from Round of 32 to Final with tracking.
+        
+        Args:
+            qualified_teams: Dictionary with qualified teams from group stage
+            detailed: Whether to track detailed results
+            
+        Returns:
+            Tuple of (champion name, all_match_results list, semifinalists list, finalists list)
+        """
+        all_matches = []
+        
+        # Round of 32 (32 → 16)
+        r32_matchups = self.create_round_of_32_bracket(qualified_teams)
+        r16_teams, r32_matches = self.simulate_knockout_round("Round of 32", r32_matchups, detailed)
+        all_matches.extend(r32_matches)
+        
+        # Round of 16 (16 → 8)
+        r16_matchups = [(r16_teams[i], r16_teams[i+1]) for i in range(0, len(r16_teams), 2)]
+        qf_teams, r16_matches = self.simulate_knockout_round("Round of 16", r16_matchups, detailed)
+        all_matches.extend(r16_matches)
+        
+        # Quarter-finals (8 → 4)
+        qf_matchups = [(qf_teams[i], qf_teams[i+1]) for i in range(0, len(qf_teams), 2)]
+        sf_teams, qf_matches = self.simulate_knockout_round("Quarter-finals", qf_matchups, detailed)
+        all_matches.extend(qf_matches)
+        
+        # Semi-finals (4 → 2) - TRACK SEMIFINALISTS
+        semifinalists = sf_teams.copy()  # All 4 teams that reach semis
+        sf_matchups = [(sf_teams[i], sf_teams[i+1]) for i in range(0, len(sf_teams), 2)]
+        final_teams, sf_matches = self.simulate_knockout_round("Semi-finals", sf_matchups, detailed)
+        all_matches.extend(sf_matches)
+        
+        # Final (2 → 1) - TRACK FINALISTS
+        finalists = final_teams.copy()  # Both teams that reach final
+        final_matchup = [(final_teams[0], final_teams[1])]
+        champion, final_match = self.simulate_knockout_round("Final", final_matchup, detailed)
+        all_matches.extend(final_match)
+        
+        return champion[0], all_matches, semifinalists, finalists
+    
     def print_knockout_match(self, match: KnockoutMatch):
         """Print formatted knockout match result."""
         print(f"\n{match.round_name} - Match {match.match_id}")

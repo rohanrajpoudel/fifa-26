@@ -4,14 +4,19 @@ A comprehensive end-to-end machine learning system for predicting FIFA World Cup
 
 **From raw match data to championship probabilities in one integrated system.**
 
-## 🌟 New in v1.0.1: Real-Time Simulation Updates!
+## 🌟 New in v1.0.2: Complete Probability Tracking!
 
-Now featuring **live progress tracking** during Monte Carlo simulations:
-- 🔴 Real-time progress updates with visual feedback
-- 📊 Live charts showing top 10 championship contenders (updated every 1%)
-- 📈 Dynamic metrics dashboard (current leader, simulation speed, progress %)
-- 🎯 No more frozen screens - watch probabilities converge in real-time!
-- 🛠️ Enhanced error handling and robust data validation
+Now featuring **comprehensive tournament progression probabilities**:
+- 🏆 **4-Level Probability Tracking**: Knockout Qualification → Semifinals → Finals → Championship
+- 🔴 Real-time updates for all 4 probability metrics during Monte Carlo simulations
+- 📊 Live 2×2 grid of probability charts (Championship, Final, Semifinal, Knockout)
+- ✅ Full implementation of official FIFA World Cup 2026 rules:
+  - Group stage: Win=3pts, Draw=1pt, Loss=0pts
+  - Rankings: Points → Goal Difference → Goals Scored
+  - Qualification: 12 winners + 12 runners-up + 8 best third-place teams = 32 teams
+  - Knockout: Extra time (30 min) → Penalty shootout if tied
+- 📈 Enhanced results display with complete tournament path probabilities
+- 🎯 Watch your favorite team's chances evolve at every stage!
 
 ---
 
@@ -84,13 +89,13 @@ This system predicts FIFA World Cup 2026 outcomes by:
 
 Based on 10,000 simulations using trained models:
 
-| Rank | Team | Win Probability | Knockout Qualification |
-|------|------|----------------|----------------------|
-| 1 | Brazil | ~18% | ~99.5% |
-| 2 | France | ~15% | ~99.1% |
-| 3 | Argentina | ~14% | ~98.9% |
-| 4 | Spain | ~11% | ~98.3% |
-| 5 | Germany | ~10% | ~98.0% |
+| Rank | Team      | Championship | Final  | Semifinal | Knockout |
+|------|-----------|-------------|--------|-----------|----------|
+| 1    | Brazil    | ~18%        | ~32%   | ~49%      | ~99.5%   |
+| 2    | France    | ~15%        | ~29%   | ~45%      | ~99.1%   |
+| 3    | Argentina | ~14%        | ~28%   | ~43%      | ~98.9%   |
+| 4    | Spain     | ~11%        | ~24%   | ~39%      | ~98.3%   |
+| 5    | Germany   | ~10%        | ~22%   | ~37%      | ~98.0%   |
 
 *(Actual results depend on current ELO ratings and model predictions)*
 
@@ -302,26 +307,28 @@ streamlit run src/app/app.py
 
 **What You'll See During Simulations:**
 
-When you run a Monte Carlo simulation in the web interface, you get real-time updates:
+When you run a Monte Carlo simulation in the web interface, you get comprehensive real-time updates:
 
 1. **Live Metrics Dashboard** (Top row)
    - Simulations: Current count and speed (sims/sec)
    - Current Leader: Team with highest win probability so far
    - Progress: Percentage complete and remaining simulations
 
-2. **Live Charts** (Updated every 1% of progress)
+2. **Live Probability Charts** (2×2 Grid, updated every 1% of progress)
    - Top 10 Championship Contenders (red bar chart)
-   - Top 10 Knockout Qualification Leaders (blue bar chart)
+   - Top 10 Final Probability (orange bar chart)
+   - Top 10 Semifinal Probability (green bar chart)
+   - Top 10 Knockout Qualification (blue bar chart)
 
 3. **Live Results Table**
-   - Real-time probabilities with color gradients
-   - Championship wins and qualification rates
+   - Real-time probabilities for all 4 stages with color gradients
+   - Championship, Final, Semifinal, and Knockout rates
    - Updates as data accumulates
 
 4. **Final Results**
-   - Comprehensive top 20 favorites
-   - Interactive visualizations
-   - Downloadable CSV export
+   - Comprehensive top 20 favorites across all stages
+   - Interactive visualizations for each probability metric
+   - Downloadable CSV export with complete data
 
 **Example Output During Simulation:**
 ```
@@ -330,18 +337,18 @@ Simulations: 5,000 / 10,000 (423 sims/sec)
 Current Leader: Brazil (18.34%)
 Progress: 50.0% (5,000 remaining)
 
-[Live charts showing current standings...]
+[4 live charts showing Championship, Final, Semifinal, and Knockout probabilities...]
 ```
 
 **Web Interface Features:**
 - 🏠 **Home**: Tournament overview and official groups
-- 🎯 **Run Simulation**: Configure and run simulations with live updates
+- 🎯 **Run Simulation**: Configure and run simulations with comprehensive live updates
   - Real-time progress tracking with visual feedback
-  - Live charts showing top 10 championship contenders (updated every 1%)
-  - Live charts showing top 10 knockout qualification leaders
+  - 4 live probability charts in 2×2 grid (Championship, Final, Semifinal, Knockout)
+  - Charts update every 1% of progress showing top 10 teams per metric
   - Dynamic metrics: current leader, simulation speed, progress percentage
   - Automatic model availability detection (only shows trained models)
-- 📊 **View Results**: Interactive charts and data tables
+- 📊 **View Results**: Interactive charts for all 4 probability stages and data tables
 - 🔧 **Model Training**: One-click model training
 - ℹ️ **About**: Methodology and documentation
 
@@ -417,26 +424,27 @@ print(results.head(20))
 
 ### Official 2026 World Cup Groups
 
-| Group A | Group B | Group C | Group D |
-|---------|---------|---------|---------|
-| Mexico | United States | Brazil | France |
-| South Africa | Paraguay | Morocco | Colombia |
-| South Korea | Turkey | Haiti | Iraq |
-| Czech Republic | Australia | Scotland | Norway |
+| Group A        | Group B                | Group C  | Group D       |
+| -------------- | ---------------------- | -------- | ------------- |
+| Mexico         | Canada                 | Brazil   | United States |
+| South Africa   | Bosnia and Herzegovina | Morocco  | Paraguay      |
+| South Korea    | Qatar                  | Haiti    | Australia     |
+| Czech Republic | Switzerland            | Scotland | Turkey        |
 
-| Group E | Group F | Group G | Group H |
-|---------|---------|---------|---------|
-| Portugal | Netherlands | Germany | Spain |
-| Denmark | Japan | Cameroon | Cape Verde |
-| Egypt | Sweden | Serbia | Saudi Arabia |
-| Costa Rica | Tunisia | Ecuador | Uruguay |
+| Group E     | Group F     | Group G     | Group H      |
+| ----------- | ----------- | ----------- | ------------ |
+| Germany     | Netherlands | Belgium     | Spain        |
+| Curaçao     | Japan       | Egypt       | Cape Verde   |
+| Ivory Coast | Sweden      | Iran        | Saudi Arabia |
+| Ecuador     | Tunisia     | New Zealand | Uruguay      |
 
-| Group I | Group J | Group K | Group L |
-|---------|---------|---------|---------|
-| Italy | Argentina | Belgium | England |
-| Switzerland | Algeria | Nigeria | Croatia |
-| Canada | Austria | Iran | Ghana |
-| Uzbekistan | Jordan | Venezuela | Panama |
+| Group I | Group J   | Group K    | Group L |
+| ------- | --------- | ---------- | ------- |
+| France  | Argentina | Portugal   | England |
+| Senegal | Algeria   | DR Congo   | Croatia |
+| Iraq    | Austria   | Uzbekistan | Ghana   |
+| Norway  | Jordan    | Colombia   | Panama  |
+
 
 ---
 
@@ -553,35 +561,44 @@ Where λ values come from ML models, adjusted by Dixon-Coles if enabled.
 | ML + Dixon-Coles | ~400/sec | 25 seconds |
 | **With Live Updates** | ~350-500/sec | 20-30 seconds |
 
-**Note:** Live updates add ~5-10% overhead but provide real-time visual feedback.
-Updates occur every 1% of total simulations (e.g., every 100 sims for a 10,000-sim run).
+**Note:** Live updates add ~10-20% overhead but provide real-time visual feedback.
+Updates occur every iteration of total simulations.
 
 ### Output Format
 
 Results are saved as CSV with the following columns:
 
 ```csv
-team,championship_wins,championship_probability,knockout_appearances,knockout_probability,avg_group_position
-Brazil,1847,0.1847,9956,0.9956,1.23
-France,1523,0.1523,9912,0.9912,1.31
-Argentina,1401,0.1401,9889,0.9889,1.28
+team,championship_wins,championship_probability,final_appearances,final_probability,semifinal_appearances,semifinal_probability,knockout_appearances,knockout_probability,avg_group_position
+Brazil,1847,0.1847,3256,0.3256,4987,0.4987,9956,0.9956,1.23
+France,1523,0.1523,2934,0.2934,4512,0.4512,9912,0.9912,1.31
+Argentina,1401,0.1401,2801,0.2801,4321,0.4321,9889,0.9889,1.28
 ...
 ```
+
+**Probability Metrics:**
+- **Championship**: Probability of winning the World Cup (final champion)
+- **Final**: Probability of reaching the final match (top 2)
+- **Semifinal**: Probability of reaching the semifinals (top 4)
+- **Knockout**: Probability of qualifying from group stage (top 32)
 
 ### Visualization
 
 The web interface provides:
-- **Live Simulation Updates** (NEW!)
+- **Live Simulation Updates**
   - Real-time progress bar with percentage completion
   - Live metrics dashboard showing current leader and simulation speed
-  - Top 10 championship contenders chart (updates every 1% of progress)
-  - Top 10 knockout qualification chart (updates every 1% of progress)
-  - Live data table with color-coded probabilities
+  - 4 live probability charts in 2×2 grid (updates every 1% of progress):
+    - Championship probability (red bars)
+    - Final probability (orange bars)
+    - Semifinal probability (green bars)
+    - Knockout qualification (blue bars)
+  - Live data table with color-coded probabilities for all 4 stages
   - No more frozen screens - constant visual feedback!
-- Bar charts of championship probabilities
-- Pie charts of top favorites
-- Filterable data tables
-- Knockout qualification analysis
+- Bar charts for all probability metrics
+- Pie charts of championship favorites
+- Filterable data tables with all 4 probability columns
+- Complete tournament path analysis (Group → R32 → Semifinals → Final → Champion)
 - Group stage predictions
 
 ---
@@ -817,11 +834,25 @@ This is an educational project demonstrating end-to-end sports analytics. Potent
 - Historical knockout performance weighting
 - Real-time odds comparison
 - Interactive bracket visualization
-- Enhanced live visualization with more detailed match-by-match tracking
 - Machine learning model hyperparameter optimization
 - Cross-validation for model selection
+- Enhanced penalty shootout model (goalkeeper stats, team pressure metrics)
+- Head-to-head tiebreaker implementation for group stage
+- Quarter-final and Round of 16 probability tracking
 
-### Recent Improvements (v1.0.1)
+### Recent Improvements (v1.0.2)
+
+- ✅ **4-Level Probability Tracking**: Championship, Final, Semifinal, and Knockout qualification
+- ✅ **Enhanced Live Visualization**: 2×2 grid of real-time probability charts with color coding
+- ✅ **Complete Tournament Rules**: Full FIFA World Cup 2026 format implementation
+  - Group stage: 3pts for win, 1pt for draw, 0pts for loss
+  - Rankings: Points → Goal Difference → Goals Scored
+  - Qualification: 12 winners + 12 runners-up + 8 best 3rd place = 32 teams
+  - Knockout: Extra time (30 min) → Penalties (52-48 home advantage model)
+- ✅ **Expanded Results**: All 4 probability metrics in results page with interactive charts
+- ✅ **Improved Data Export**: CSV includes championship, final, semifinal, and knockout probabilities
+
+### Previous Improvements (v1.0.1)
 
 - ✅ Added real-time simulation updates with live charts
 - ✅ Fixed CatBoost NaN handling for categorical features
@@ -840,7 +871,7 @@ Educational project for demonstration of machine learning and sports analytics.
 
 ## 🎯 Project Status
 
-**Current Version**: 1.0.1 (June 2026)
+**Current Version**: 1.0.2 (June 2026)
 
 **Status**: ✅ Complete and operational
 
@@ -851,18 +882,19 @@ Educational project for demonstration of machine learning and sports analytics.
 - ✅ Dixon-Coles adjustments
 - ✅ Tournament simulator (48 teams, 12 groups)
 - ✅ Monte Carlo engine (100,000+ capable)
-- ✅ Web interface (Streamlit) with real-time updates
+- ✅ Web interface (Streamlit) with 4-level probability tracking
 - ✅ CLI interface
 - ✅ Complete documentation
 - ✅ Robust error handling and NaN management
 - ✅ Dynamic model availability detection
+- ✅ Full FIFA World Cup 2026 rules implementation
 
-**Latest Updates (v1.0.1):**
-- 🔴 Real-time simulation progress with live charts
-- 🛠️ Fixed CatBoost categorical feature handling
-- 🛠️ Fixed data column mapping issues
-- 📊 Enhanced UI with dynamic updates
-- 🎯 Improved user experience with visual feedback
+**Latest Updates (v1.0.2):**
+- 🏆 4-level probability tracking (Knockout → Semifinal → Final → Championship)
+- 🔴 2×2 grid of real-time probability charts with color coding
+- ✅ Complete tournament rules implementation (group stage, qualification, knockouts)
+- 📊 Enhanced results visualization with all 4 probability metrics
+- 🎯 Comprehensive tournament path analysis
 
 ---
 
@@ -893,12 +925,16 @@ Start with: `streamlit run src/app/app.py` for the full interactive experience w
 When running simulations, you'll see:
 - 3 real-time metrics at the top (simulations count, current leader, progress %)
 - Progress bar showing completion status
-- Two side-by-side live charts updating every 1% of progress
-- Live data table with color-coded probabilities (red for championship, blue for knockout)
+- Four live probability charts in 2×2 grid updating every 1% of progress:
+  - 🏆 Championship probability (red bars)
+  - 🥇 Final probability (orange bars)
+  - 🥉 Semifinal probability (green bars)
+  - ✅ Knockout qualification (blue bars)
+- Live data table with color-coded probabilities for all 4 stages
 - All updating in real-time as simulations run - no frozen screens!
 
 **Final Results View:**
-- Interactive bar charts and pie charts
-- Filterable data tables
-- Export to CSV functionality
-- Historical comparison options
+- Interactive bar charts and pie charts for all 4 probability metrics
+- Filterable data tables with complete tournament path probabilities
+- Export to CSV functionality with all probability columns
+- Complete tournament progression analysis

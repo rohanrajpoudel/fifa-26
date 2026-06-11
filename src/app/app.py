@@ -363,6 +363,15 @@ def run_monte_carlo(n_simulations: int, use_dixon_coles: bool, base_model: str):
             live_chart_championship = st.empty()
         
         with chart_col2:
+            st.markdown("**Top 10 Final Probability**")
+            live_chart_final = st.empty()
+        
+        chart_col3, chart_col4 = st.columns(2)
+        with chart_col3:
+            st.markdown("**Top 10 Semifinal Probability**")
+            live_chart_semifinal = st.empty()
+        
+        with chart_col4:
             st.markdown("**Top 10 Knockout Qualification**")
             live_chart_knockout = st.empty()
         
@@ -372,13 +381,15 @@ def run_monte_carlo(n_simulations: int, use_dixon_coles: bool, base_model: str):
         from collections import Counter, defaultdict
         champions_list = []
         knockout_counts = defaultdict(int)
+        semifinal_counts = defaultdict(int)
+        final_counts = defaultdict(int)
         start_time = time.time()
-        update_frequency = max(1, n_simulations // 100)  # Update every 1% or at least every sim
+        update_frequency = 1
         
         # Custom simulation loop with live updates
         for sim_num in range(n_simulations):
-            # Run one tournament
-            result = simulator.simulate_tournament(detailed=False)
+            # Run one tournament with tracking
+            result = simulator.simulate_tournament_with_tracking(detailed=False)
             
             # Track results
             champions_list.append(result['champion'])
@@ -390,16 +401,24 @@ def run_monte_carlo(n_simulations: int, use_dixon_coles: bool, base_model: str):
             for team in all_qualified:
                 knockout_counts[team] += 1
             
+            # Track semifinal appearances
+            for team in result.get('semifinalists', []):
+                semifinal_counts[team] += 1
+            
+            # Track final appearances
+            for team in result.get('finalists', []):
+                final_counts[team] += 1
+            
             # Update display periodically
             if (sim_num + 1) % update_frequency == 0 or sim_num == n_simulations - 1:
                 current_sim = sim_num + 1
                 progress = current_sim / n_simulations
                 elapsed = time.time() - start_time
-                rate = current_sim / elapsed if elapsed > 0 else 0
+                rate = current_sim / (elapsed/60) if (elapsed/60) > 0 else 0
                 
                 # Update progress bar
                 progress_bar.progress(progress)
-                status_text.text(f"Simulations: {current_sim:,} / {n_simulations:,} ({progress*100:.1f}%)")
+                status_text.text(f"Simulations: {current_sim:,} / {n_simulations:,} ({progress*100:.2f}%)")
                 
                 # Count current standings
                 champion_counts = Counter(champions_list)
@@ -411,6 +430,10 @@ def run_monte_carlo(n_simulations: int, use_dixon_coles: bool, base_model: str):
                         'team': team,
                         'championship_wins': wins,
                         'championship_probability': wins / current_sim,
+                        'final_appearances': final_counts.get(team, 0),
+                        'final_probability': final_counts.get(team, 0) / current_sim,
+                        'semifinal_appearances': semifinal_counts.get(team, 0),
+                        'semifinal_probability': semifinal_counts.get(team, 0) / current_sim,
                         'knockout_appearances': knockout_counts.get(team, 0),
                         'knockout_probability': knockout_counts.get(team, 0) / current_sim
                     })
@@ -421,10 +444,10 @@ def run_monte_carlo(n_simulations: int, use_dixon_coles: bool, base_model: str):
                 # Update metrics
                 if len(temp_df) > 0:
                     leader = temp_df.iloc[0]
-                    metric_sims.metric("Simulations", f"{current_sim:,}", f"{rate:.0f}/sec")
+                    metric_sims.metric("Simulations", f"{current_sim:,}", f"{rate:.0f}/min")
                     metric_leader.metric("Current Leader", leader['team'], 
                                         f"{leader['championship_probability']*100:.2f}%")
-                    metric_speed.metric("Progress", f"{progress*100:.1f}%", 
+                    metric_speed.metric("Progress", f"{progress*100:.2f}%", 
                                        f"{(n_simulations - current_sim):,} remaining")
                     
                     # Update championship chart
@@ -444,14 +467,14 @@ def run_monte_carlo(n_simulations: int, use_dixon_coles: bool, base_model: str):
                     )
                     live_chart_championship.plotly_chart(fig1, width='stretch', key=f"live_championship_chart_{current_sim}")
                     
-                    # Update knockout chart
+                    # Update final probability chart
                     fig2 = px.bar(
                         temp_df,
                         x='team',
-                        y='knockout_probability',
-                        color='knockout_probability',
-                        color_continuous_scale='Blues',
-                        labels={'knockout_probability': 'Qualification %', 'team': 'Team'}
+                        y='final_probability',
+                        color='final_probability',
+                        color_continuous_scale='Oranges',
+                        labels={'final_probability': 'Final %', 'team': 'Team'}
                     )
                     fig2.update_layout(
                         showlegend=False,
@@ -459,17 +482,54 @@ def run_monte_carlo(n_simulations: int, use_dixon_coles: bool, base_model: str):
                         height=300,
                         margin=dict(l=0, r=0, t=0, b=0)
                     )
-                    live_chart_knockout.plotly_chart(fig2, width='stretch', key=f"live_knockout_chart_{current_sim}")
+                    live_chart_final.plotly_chart(fig2, width='stretch', key=f"live_final_chart_{current_sim}")
+                    
+                    # Update semifinal probability chart
+                    fig3 = px.bar(
+                        temp_df,
+                        x='team',
+                        y='semifinal_probability',
+                        color='semifinal_probability',
+                        color_continuous_scale='Greens',
+                        labels={'semifinal_probability': 'Semifinal %', 'team': 'Team'}
+                    )
+                    fig3.update_layout(
+                        showlegend=False,
+                        xaxis_tickangle=-45,
+                        height=300,
+                        margin=dict(l=0, r=0, t=0, b=0)
+                    )
+                    live_chart_semifinal.plotly_chart(fig3, width='stretch', key=f"live_semifinal_chart_{current_sim}")
+                    
+                    # Update knockout chart
+                    fig4 = px.bar(
+                        temp_df,
+                        x='team',
+                        y='knockout_probability',
+                        color='knockout_probability',
+                        color_continuous_scale='Blues',
+                        labels={'knockout_probability': 'Qualification %', 'team': 'Team'}
+                    )
+                    fig4.update_layout(
+                        showlegend=False,
+                        xaxis_tickangle=-45,
+                        height=300,
+                        margin=dict(l=0, r=0, t=0, b=0)
+                    )
+                    live_chart_knockout.plotly_chart(fig4, width='stretch', key=f"live_knockout_chart_{current_sim}")
                     
                     # Update live table
                     live_table.dataframe(
-                        temp_df[['team', 'championship_probability', 'knockout_probability', 'championship_wins']]
+                        temp_df[['team', 'championship_probability', 'final_probability', 'semifinal_probability', 'knockout_probability']]
                         .style.format({
                             'championship_probability': '{:.2%}',
-                            'knockout_probability': '{:.2%}',
-                            'championship_wins': '{:,.0f}'
+                            'final_probability': '{:.2%}',
+                            'semifinal_probability': '{:.2%}',
+                            'knockout_probability': '{:.2%}'
                         })
                         .background_gradient(subset=['championship_probability'], cmap='Reds')
+                        .background_gradient(subset=['final_probability'], cmap='Oranges')
+                        .background_gradient(subset=['semifinal_probability'], cmap='Greens')
                         .background_gradient(subset=['knockout_probability'], cmap='Blues'),
                         hide_index=True,
                         width='stretch'
@@ -491,6 +551,8 @@ def run_monte_carlo(n_simulations: int, use_dixon_coles: bool, base_model: str):
             defaultdict(list),  # group_winners not tracked in live mode
             group_positions,    # empty for now
             knockout_counts,
+            semifinal_counts,
+            final_counts,
             n_simulations
         )
         
@@ -519,9 +581,11 @@ def run_monte_carlo(n_simulations: int, use_dixon_coles: bool, base_model: str):
         
         # Data table
         st.dataframe(
-            top_20[['team', 'championship_probability', 'knockout_probability']]
+            top_20[['team', 'championship_probability', 'final_probability', 'semifinal_probability', 'knockout_probability']]
             .style.format({
                 'championship_probability': '{:.2%}',
+                'final_probability': '{:.2%}',
+                'semifinal_probability': '{:.2%}',
                 'knockout_probability': '{:.2%}'
             }),
             hide_index=True
@@ -579,8 +643,36 @@ def show_results():
             st.plotly_chart(fig1, width='stretch')
         
         with col2:
-            # Knockout probability
+            # Final probability
             fig2 = px.bar(
+                filtered_df.head(10),
+                x='team',
+                y='final_probability',
+                title='Top 10 - Final Probability',
+                color='final_probability',
+                color_continuous_scale='Oranges'
+            )
+            fig2.update_layout(xaxis_tickangle=-45)
+            st.plotly_chart(fig2, width='stretch')
+        
+        col3, col4 = st.columns(2)
+        
+        with col3:
+            # Semifinal probability
+            fig3 = px.bar(
+                filtered_df.head(10),
+                x='team',
+                y='semifinal_probability',
+                title='Top 10 - Semifinal Probability',
+                color='semifinal_probability',
+                color_continuous_scale='Greens'
+            )
+            fig3.update_layout(xaxis_tickangle=-45)
+            st.plotly_chart(fig3, width='stretch')
+        
+        with col4:
+            # Knockout probability
+            fig4 = px.bar(
                 filtered_df.head(10),
                 x='team',
                 y='knockout_probability',
@@ -588,8 +680,8 @@ def show_results():
                 color='knockout_probability',
                 color_continuous_scale='Blues'
             )
-            fig2.update_layout(xaxis_tickangle=-45)
-            st.plotly_chart(fig2, width='stretch')
+            fig4.update_layout(xaxis_tickangle=-45)
+            st.plotly_chart(fig4, width='stretch')
         
         # Full data table
         st.subheader("Complete Results")
@@ -597,6 +689,8 @@ def show_results():
         # Format columns dynamically based on what exists
         format_dict = {
             'championship_probability': '{:.4%}',
+            'final_probability': '{:.2%}',
+            'semifinal_probability': '{:.2%}',
             'knockout_probability': '{:.2%}'
         }
         if 'avg_group_position' in filtered_df.columns:
